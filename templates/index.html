@@ -1,13 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Eisenhower Matrix Scheduler</title>
+    <title>Task Scheduler</title>
+    <style>
+        .task-box {
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 1em;
+            padding-bottom: 0.5em;
+        }
+        .start-date {
+            color: green;
+        }
+    </style>
 </head>
 <body>
-  <h1>Task Scheduler Demo</h1>
-  <button onclick="runDemo()">Schedule Sample Tasks</button>
-  <div id="task-list"></div>
+    <h1>Task Scheduler Demo</h1>
 
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <form action="/sample" method="get">
+        <button type="submit">Schedule Sample Tasks</button>
+    </form>
+
+    <h2>Add Task</h2>
+    <form action="/add" method="POST">
+        <label>Title:</label>
+        <input type="text" name="title" required><br>
+
+        <label>Due date:</label>
+        <input type="date" name="due" required><br>
+
+        <label>Duration (days):</label>
+        <input type="number" step="0.5" name="duration" required><br>
+
+        <button type="submit">Add Task</button>
+    </form>
+
+    <hr>
+
+    {% for task in tasks %}
+        <div class="task-box">
+            <strong>{{ task.title }}</strong><br>
+            Due: {{ task.due }}<br>
+            Duration: {{ task.duration }} day(s)<br>
+            <span class="start-date">Start by: {{ task.start }}</span>
+        </div>
+    {% endfor %}
 </body>
 </html>
