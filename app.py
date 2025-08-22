@@ -1,52 +1,66 @@
-from flask import Flask, render_template, request, redirect
-from datetime import datetime, timedelta
+from flask import Flask, render_template, request, redirect, url_for
+from itertools import count
+from services import schedule_tasks
 
 app = Flask(__name__)
 
-# In-memory task list
-tasks = []
+TASKS = []
+_next_id = count(1)
 
-@app.route("/")
+def get_task(task_id):
+    for t in TASKS:
+        if t["id"] == task_id:
+            return t
+    return None
+
+@app.get("/")
 def index():
-    scheduled_tasks = schedule_tasks(tasks)
-    return render_template("index.html", tasks=scheduled_tasks)
+    schedule_tasks(TASKS)  # recompute + sort
+    return render_template("index.html", tasks=TASKS)
 
-@app.route("/add", methods=["POST"])
-def add_task():
-    title = request.form["title"]
-    due = request.form["due"]
-    duration = float(request.form["duration"])
-
-    tasks.append({
-        "title": title,
-        "due": due,
-        "duration": duration
+@app.post("/tasks")
+def create_task():
+    TASKS.append({
+        "id": next(_next_id),
+        "title": request.form["title"].strip(),
+        "description": request.form.get("description", "").strip(),
+        "due_date": request.form["due_date"],            # "YYYY-MM-DD"
+        "duration_days": float(request.form.get("duration_days", 1)),
+        "importance": int(request.form.get("importance", 5)),
+        "completed": False,
     })
-    return redirect("/")
+    return redirect(url_for("index"))
 
-@app.route("/sample")
-def sample():
-    global tasks
-    tasks = [
-        {"title": "Read article", "due": "2025-07-13", "duration": 1},
-        {"title": "Write post", "due": "2025-07-15", "duration": 0.5},
-        {"title": "Research", "due": "2025-07-14", "duration": 2},
-    ]
-    return redirect("/")
+@app.post("/tasks/<int:task_id>/edit")
+def edit_task(task_id):
+    t = get_task(task_id)
+    if t:
+        t["title"] = request.form["title"].strip()
+        t["description"] = request.form.get("description", "").strip()
+        t["due_date"] = request.form["due_date"]
+        t["duration_days"] = float(request.form.get("duration_days", 1))
+        t["importance"] = int(request.form.get("importance", 5))
+    return redirect(url_for("index"))
 
-def schedule_tasks(task_list):
-    scheduled = []
-    for task in task_list:
-        due_date = datetime.strptime(task["due"], "%Y-%m-%d")
-        duration_days = timedelta(days=task["duration"])
-        start_date = due_date - duration_days
-        scheduled.append({
-            "title": task["title"],
-            "due": task["due"],
-            "duration": task["duration"],
-            "start": start_date.strftime("%Y-%m-%d")
-        })
-    return scheduled
+@app.post("/tasks/<int:task_id>/complete")
+def complete_task(task_id):
+    t = get_task(task_id)
+    if t:
+        t["completed"] = True
+    return redirect(url_for("index"))
+
+@app.post("/tasks/<int:task_id>/uncomplete")
+def uncomplete_task(task_id):
+    t = get_task(task_id)
+    if t:
+        t["completed"] = False
+    return redirect(url_for("index"))
+
+@app.post("/tasks/<int:task_id>/delete")
+def delete_task(task_id):
+    global TASKS
+    TASKS = [t for t in TASKS if t["id"] != task_id]
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(debug=True)
