@@ -1,52 +1,35 @@
-function runDemo() {
-  const sampleTasks = [
-    { name: "Read article", due_date: "2025-07-13", duration_days: 1 },
-    { name: "Write post", due_date: "2025-07-15", duration_days: 0.5 },
-    { name: "Research", due_date: "2025-07-14", duration_days: 2 }
-  ];
+// Toggles Add Task form fields based on whether an assignment is selected.
+(function () {
+  function $(id) { return document.getElementById(id); }
 
-  fetch("/api/schedule", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tasks: sampleTasks })
-  })
-    .then(res => res.json())
-    .then(renderTasks);
-}
+  function refreshAddTask() {
+    const select = $('assignment_id');
+    if (!select) return;
 
-function renderTasks(tasks) {
-  const container = document.getElementById("task-list");
-  container.innerHTML = "";
+    const isStandalone = (select.value === '0' || select.value === '');
 
-  tasks.forEach(task => {
-    const div = document.createElement("div");
-    div.innerHTML = `
-      <strong>${task.name}</strong><br>
-      Due: ${task.due_date}<br>
-      Duration: ${task.duration_days} day(s)<br>
-      <span style="color: green;">Start by: ${task.start_date}</span>
-      <hr>
-    `;
-    container.appendChild(div);
+    const standalone = $('standalone-fields'); // due_date + importance
+    const assignOnly = $('assignment-fields'); // order
+
+    const due  = $('due_date');
+    const prio = $('importance');
+    const order = $('order');
+
+    // Show/hide groups (use `hidden` so layout is clean)
+    if (standalone) standalone.hidden = !isStandalone;
+    if (assignOnly) assignOnly.hidden = isStandalone;
+
+    // Validation + submission behavior
+    if (due)  { due.required = isStandalone; due.disabled = !isStandalone; if (!isStandalone) due.value = ''; }
+    if (prio) { prio.disabled = !isStandalone; if (!isStandalone) prio.value = ''; }
+    if (order){ order.disabled = isStandalone; if (isStandalone) order.value = '1'; }
+  }
+
+  document.addEventListener('DOMContentLoaded', refreshAddTask);
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'assignment_id') refreshAddTask();
   });
-}
 
-function renderTasks(tasks) {
-  const container = document.getElementById("task-list");
-  container.innerHTML = ""; // Clear existing tasks
-
-  tasks.forEach(task => {
-    const taskDiv = document.createElement("div");
-    taskDiv.className = "task";
-
-    taskDiv.innerHTML = `
-      <strong>${task.name}</strong><br>
-      Due: ${task.due_date}<br>
-      Duration: ${task.duration_days} day(s)<br>
-      <span style="color: green;">Start by: ${task.start_date}</span>
-      <hr>
-    `;
-
-    container.appendChild(taskDiv);
-  });
-}
+  // Optional: expose for manual calls if needed
+  window.refreshAddTask = refreshAddTask;
+})();
