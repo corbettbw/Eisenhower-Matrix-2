@@ -1,5 +1,36 @@
 from datetime import datetime, timedelta
 
+def _d(s):  # "YYYY-MM-DD" -> date
+    return datetime.strptime(s, "%Y-%m-%d").date()
+
+def schedule_assignment(assignment):
+    tasks = sorted(assignment["tasks"], key=lambda t: int(t.get("order", 0)))
+    cur = _d(assignment["due_date"])
+    for t in reversed(tasks):
+        dur = float(t.get("duration_days", 1))
+        start = cur - timedelta(days = dur)
+        t["start_date"] = start.strftime("%Y-%m-%d")
+        cur = start
+    assignment["tasks"] = sorted(assignment["tasks"], key=lambda t: (t["start_date"], -int(t.get("importance", 0)), int(t.get("order", 0))))
+    return assignment
+
+def schedule_all(assignments):
+    for a in assignments:
+        schedule_assignment(a)
+
+def tasks_by_start(assignments):
+    flat = []
+    for a in assignments:
+        for t in a["tasks"]:
+            flat.append({
+                **t,
+                "assignment_id": a["id"],
+                "assignment_title": a["title"],
+                "due_date": a["due_date"],   # assignment due
+            })
+    flat.sort(key=lambda t: (t["start_date"], -int(t.get("importance", 0)), t["assignment_id"], int(t.get("order", 0))))
+    return flat
+
 def schedule_tasks(tasks):
     # parse
     for t in tasks:

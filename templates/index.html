@@ -1,55 +1,101 @@
 <!doctype html>
-<title>Tasks</title>
-<h1>Add Task</h1>
+<title>Assignments & Tasks</title>
+
+<h1>Assignments</h1>
+<form action="{{ url_for('create_assignment') }}" method="post" style="margin-bottom:1rem">
+  <label>Title: <input name="assignment_title" required></label>
+  <label>Due: <input type="date" name="assignment_due" required></label>
+  <button type="submit">Add Assignment</button>
+</form>
+
+{% if assignments %}
+  <ul>
+    {% for a in assignments %}
+      <li>
+        <strong>{{ a.title }}</strong> (due {{ a.due_date }})
+        {% if a.tasks %}
+          <ul>
+            {% for t in a.tasks %}
+              <li>
+                <strong>{% if t.completed %}<s>{{ t.title }}</s>{% else %}{{ t.title }}{% endif %}</strong>
+                — start {{ t.start_date }}, due {{ t.due_date }},
+                dur {{ t.duration_days }}, priority {{ t.importance }}, order {{ t.order }}
+                <div><em>{{ t.assignment_title }}</em>{% if t.description %}: {{ t.description }}{% endif %}</div>
+              </li>
+            {% else %}
+              <p>No tasks yet.</p>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div><em>No tasks yet.</em></div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No assignments yet.</p>
+{% endif %}
+
+<hr>
+
+<h2>Add Task to an Assignment</h2>
+{% if assignments %}
 <form action="{{ url_for('create_task') }}" method="post">
+  <label>Assignment:
+    <select name="assignment_id">
+      {% for a in assignments %}
+        <option value="{{ a.id }}">{{ a.title }} (due {{ a.due_date }})</option>
+      {% endfor %}
+    </select>
+  </label><br>
   <label>Title: <input name="title" required></label><br>
   <label>Description:<br>
     <textarea name="description" rows="3" cols="40"></textarea>
   </label><br>
-  <label>Due date: <input type="date" name="due_date" required></label><br>
   <label>Duration (days): <input type="number" name="duration_days" step="0.5" value="1"></label><br>
-  <label>Importance (0–10): <input type="number" name="importance" min="0" max="10" value="5"></label><br>
-  <button type="submit">Add</button>
+  <label>Priority (0–10): <input type="number" name="importance" min="0" max="10" value="5"></label><br>
+  <label>Order (1..N): <input type="number" name="order" min="1" value="1"></label><br>
+  <button type="submit">Add Task</button>
 </form>
+{% else %}
+<p><em>Create an assignment first.</em></p>
+{% endif %}
 
 <hr>
-<h2>Tasks (by start date)</h2>
+
+<h2>All Tasks (by start date)</h2>
 <ol>
   {% for t in tasks %}
-    <li>
-      <strong>{% if t.completed %}<s>{{ t.title }}</s>{% else %}{{ t.title }}{% endif %}</strong>
-      — start {{ t.start_date }}, due {{ t.due_date }}, dur {{ t.duration_days }}, priority {{ t.importance }}
-      {% if t.description %}<div>{{ t.description }}</div>{% endif %}
+<li>
+  <strong>{% if t.completed %}<s>{{ t.title }}</s>{% else %}{{ t.title }}{% endif %}</strong>
+  — start {{ t.start_date }}, dur {{ t.duration_days }}, priority {{ t.importance }}, order {{ t.order }}
+  {% if t.description %}<div>{{ t.description }}</div>{% endif %}
 
-      <!-- actions -->
-      {% if not t.completed %}
-        <form action="{{ url_for('complete_task', task_id=t.id) }}" method="post" style="display:inline">
-          <button type="submit">Complete</button>
-        </form>
-      {% else %}
-        <form action="{{ url_for('uncomplete_task', task_id=t.id) }}" method="post" style="display:inline">
-          <button type="submit">Uncomplete</button>
-        </form>
-      {% endif %}
-      <form action="{{ url_for('delete_task', task_id=t.id) }}" method="post" style="display:inline" onsubmit="return confirm('Delete this task?');">
-        <button type="submit">Delete</button>
-      </form>
-
-      <!-- inline edit -->
-      <details>
-        <summary>Edit</summary>
-        <form action="{{ url_for('edit_task', task_id=t.id) }}" method="post">
-          <label>Title <input name="title" value="{{ t.title }}" required></label><br>
-          <label>Due <input type="date" name="due_date" value="{{ t.due_date }}" required></label><br>
-          <label>Duration <input type="number" step="0.5" name="duration_days" value="{{ t.duration_days }}"></label><br>
-          <label>Priority <input type="number" min="0" max="10" name="importance" value="{{ t.importance }}"></label><br>
-          <label>Description<br><textarea name="description" rows="3" cols="40">{{ t.description }}</textarea></label><br>
-          <button type="submit">Save</button>
-        </form>
-      </details>
-      <hr>
-    </li>
+  {% if not t.completed %}
+    <form action="{{ url_for('complete_task', task_id=t.id) }}" method="post" style="display:inline">
+      <button type="submit">Complete</button>
+    </form>
   {% else %}
-    <p>No tasks yet.</p>
+    <form action="{{ url_for('uncomplete_task', task_id=t.id) }}" method="post" style="display:inline">
+      <button type="submit">Uncomplete</button>
+    </form>
+  {% endif %}
+  <form action="{{ url_for('delete_task', task_id=t.id) }}" method="post" style="display:inline" onsubmit="return confirm('Delete this task?');">
+    <button type="submit">Delete</button>
+  </form>
+
+  <details>
+    <summary>Edit</summary>
+    <form action="{{ url_for('edit_task', task_id=t.id) }}" method="post">
+      <label>Title <input name="title" value="{{ t.title }}" required></label><br>
+      <label>Duration <input type="number" step="0.5" name="duration_days" value="{{ t.duration_days }}"></label><br>
+      <label>Priority <input type="number" min="0" max="10" name="importance" value="{{ t.importance }}"></label><br>
+      <label>Order <input type="number" min="1" name="order" value="{{ t.order }}"></label><br>
+      <label>Description<br><textarea name="description" rows="3" cols="40">{{ t.description }}</textarea></label><br>
+      <button type="submit">Save</button>
+    </form>
+  </details>
+  <hr>
+</li>
   {% endfor %}
 </ol>
