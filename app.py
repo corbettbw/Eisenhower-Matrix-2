@@ -11,18 +11,43 @@ def get_state():
 
 @app.post("/api/state")
 def set_state():
-    data = request.get_json(force=True)
-    # replace in-memory; trust client (no auth by design here)
+    data = request.get_json(force=True) or {}
+    # Replace in-memory state
     global ASSIGNMENTS, TASKS
-    ASSIGNMENTS = data.get("assignments", [])
-    TASKS = data.get("tasks", [])
+    ASSIGNMENTS = data.get("assignments", []) or []
+    TASKS       = data.get("tasks", []) or []
+    # Assign IDs/defaults for anything missing them (e.g., ICS-imported tasks)
+    _ensure_ids_and_defaults()
     return jsonify({"ok": True})
+
 
 
 ASSIGNMENTS = []  # [{id, title, due_date, tasks: [ ... ]}]
 TASKS = []
 _next_aid = count(1)
 _next_tid = count(1)
+
+# after: _next_aid = count(1); _next_tid = count(1)
+
+def _ensure_ids_and_defaults():
+    """Give IDs to any assignments/tasks that don't have them (e.g., from ICS import)."""
+    global ASSIGNMENTS, TASKS
+    for a in ASSIGNMENTS:
+        if "id" not in a:
+            a["id"] = next(_next_aid)
+        a.setdefault("importance", 5)
+        a.setdefault("tasks", [])
+        for t in a["tasks"]:
+            if "id" not in t:
+                t["id"] = next(_next_tid)
+            t.setdefault("order", 1)
+            # importance for assignment tasks is inherited during schedule; ok if absent
+
+    for t in TASKS:
+        if "id" not in t:
+            t["id"] = next(_next_tid)
+        t.setdefault("importance", 5)
+        t.setdefault("order", 1)
 
 def get_assignment(aid: int):
     return next((a for a in ASSIGNMENTS if a["id"] == aid), None)

@@ -200,6 +200,128 @@ async function exportICSFlow() {
   URL.revokeObjectURL(a.href);
 }
 
+// ---------- ICS IMPORT (VEVENT -> standalone tasks) ----------
+
+// Unfold iCalendar lines (remove CRLF + space/tab continuations)
+function unfoldICS(text) {
+  return text.replace(/\r?\n[ \t]/g, '');
+}
+
+// Very small VEVENT parser: grabs SUMMARY, DESCRIPTION, DTSTART, DTEND, DURATION
+function parseICS(text) {
+  const lines = unfoldICS(text).split(/\r?\n/);
+  const events = [];
+  let ev = null;
+  for (const raw of lines) {
+    if (!raw) continue;
+    const line = raw.trim();
+    if (line === 'BEGIN:VEVENT') { ev = {}; continue; }
+    if (line === 'END:VEVENT')   { if (ev) events.push(ev); ev = null; continue; }
+    if (!ev) continue;
+    const i = line.indexOf(':');
+    if (i < 0) continue;
+    const left  = line.slice(0, i);
+    const value = line.slice(i + 1);
+    const prop  = left.split(';', 1)[0].toUpperCase(); // drop params like ;VALUE=DATE
+    ev[prop] = value;
+  }
+  return events;
+}
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function ymdToDate(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function dateToYMD(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+
+// Accepts YYYYMMDD or YYYYMMDDTHHMMSS(Z)
+function icsDateToYMD(s) {
+  const m = /^(\d{4})(\d{2})(\d{2})/.exec(s || '');
+  if (!m) return null;
+  return `${m[1]}-${m[2]}-${m[3]}`;
+}
+
+// DTEND is exclusive in ICS. Day count = (end - start) in days, min 1.
+function daysBetween(startYMD, endYMD) {
+  const a = ymdToDate(startYMD), b = ymdToDate(endYMD);
+  return Math.max(1, Math.round((b - a) / 86400000));
+}
+
+// Very small DURATION parser for all-day spans like "P3D"
+function parseDurationDays(dur) {
+  const m = /^P(?:(\d+)D)?$/i.exec(dur || '');
+  return m && m[1] ? Math.max(1, parseInt(m[1], 10)) : 1;
+}
+
+async function importICSFlow() {
+  const input = document.getElementById('file-import-ics');
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const vevents = parseICS(text);
+
+      // Pull current state, append new standalone tasks, push back
+      const state = await fetch('/api/state').then(r => r.json());
+      state.tasks = state.tasks || [];
+
+      for (const ev of vevents) {
+        const title = ev.SUMMARY || 'Imported event';
+        const desc  = (ev.DESCRIPTION || '').replace(/\\n/g, '\n');
+
+        const startY = icsDateToYMD(ev.DTSTART);
+        if (!startY) continue; // skip malformed
+
+        let durationDays = 1, dueY = null;
+        if (ev.DTEND) {
+          const endY = icsDateToYMD(ev.DTEND);
+          if (endY) {
+            durationDays = daysBetween(startY, endY);  // DTEND exclusive
+            dueY = endY;
+          }
+        } else if (ev.DURATION) {
+          durationDays = parseDurationDays(ev.DURATION);
+          dueY = dateToYMD(addDays(ymdToDate(startY), durationDays));
+        } else {
+          // one-day all-day
+          durationDays = 1;
+          dueY = dateToYMD(addDays(ymdToDate(startY), 1));
+        }
+
+        state.tasks.push({
+          // standalone task fields your server understands
+          title,
+          description: desc,
+          due_date: dueY,
+          duration_days: durationDays,
+          importance: 5,     // default; user can edit later
+          // note: start_date is recomputed server-side
+        });
+      }
+
+      await fetch('/api/state', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(state)
+      });
+
+      alert(`Imported ${vevents.length} event(s) from .ics as standalone tasks.`);
+      location.reload();
+
+    } catch (err) {
+      console.error(err);
+      alert('Failed to import .ics. See console for details.');
+    } finally {
+      e.target.value = ''; // reset file input
+    }
+  };
+  input.click();
+}
+
+// Wire the new button
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btn-import-ics');
+  if (btn) btn.addEventListener('click', importICSFlow);
+});
 
 // ---------- Wire buttons ----------
 document.addEventListener('DOMContentLoaded', () => {
