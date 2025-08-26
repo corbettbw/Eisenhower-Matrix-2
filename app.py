@@ -1,8 +1,23 @@
 from flask import Flask, render_template, request, redirect, url_for
 from itertools import count
 from services import schedule_tasks
+from flask import jsonify
 
 app = Flask(__name__)
+
+@app.get("/api/state")
+def get_state():
+    return jsonify({"assignments": ASSIGNMENTS, "tasks": TASKS})
+
+@app.post("/api/state")
+def set_state():
+    data = request.get_json(force=True)
+    # replace in-memory; trust client (no auth by design here)
+    global ASSIGNMENTS, TASKS
+    ASSIGNMENTS = data.get("assignments", [])
+    TASKS = data.get("tasks", [])
+    return jsonify({"ok": True})
+
 
 ASSIGNMENTS = []  # [{id, title, due_date, tasks: [ ... ]}]
 TASKS = []

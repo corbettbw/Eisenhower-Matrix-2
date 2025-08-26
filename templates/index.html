@@ -1,5 +1,20 @@
   <!doctype html>
   <title>Assignments & Tasks</title>
+  <!-- List actions -->
+  <div style="margin: .5rem 0 1rem;">
+    <button type="button" id="btn-save-list">Save List</button>
+    <select id="saved-lists" style="max-width: 16rem;">
+      <option value="">Open saved list…</option>
+    </select>
+    <button type="button" id="btn-open-list">Open</button>
+
+    <button type="button" id="btn-share-link">Share link</button>
+    <button type="button" id="btn-export-ics">Export .ics</button>
+    <input type="file" id="file-import-list" accept=".json" style="display:none;">
+    <button type="button" id="btn-import-file">Import file</button>
+  </div>
+
+  <!-- load your helper JS (you already include script.js at the end) -->
 
   <h1>Assignments</h1>
   <form action="{{ url_for('create_assignment') }}" method="post" style="margin-bottom:1rem">
