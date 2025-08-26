@@ -16,8 +16,8 @@ def set_state():
     global ASSIGNMENTS, TASKS
     ASSIGNMENTS = data.get("assignments", []) or []
     TASKS       = data.get("tasks", []) or []
-    # Assign IDs/defaults for anything missing them (e.g., ICS-imported tasks)
-    _ensure_ids_and_defaults()
+    # Normalize IDs & reseed counters so future adds don’t collide
+    _normalize_ids()
     return jsonify({"ok": True})
 
 
@@ -27,7 +27,61 @@ TASKS = []
 _next_aid = count(1)
 _next_tid = count(1)
 
-# after: _next_aid = count(1); _next_tid = count(1)
+from itertools import count
+
+# existing
+# _next_aid = count(1)
+# _next_tid = count(1)
+
+def _normalize_ids():
+    """Ensure all assignment/task IDs are unique ints and reseed counters."""
+    global _next_aid, _next_tid, ASSIGNMENTS, TASKS
+
+    # coerce to ints and find current maxes
+    max_a = 0
+    max_t = 0
+    for a in ASSIGNMENTS:
+        try: a["id"] = int(a.get("id"))
+        except: a["id"] = None
+        max_a = max(max_a, a["id"] or 0)
+        a.setdefault("importance", 5)
+        a.setdefault("tasks", [])
+        for t in a["tasks"]:
+            try: t["id"] = int(t.get("id"))
+            except: t["id"] = None
+            max_t = max(max_t, t["id"] or 0)
+            t.setdefault("order", 1)
+
+    for t in TASKS:
+        try: t["id"] = int(t.get("id"))
+        except: t["id"] = None
+        max_t = max(max_t, t["id"] or 0)
+        t.setdefault("importance", 5)
+        t.setdefault("order", 1)
+
+    # seed counters to avoid collisions
+    _next_aid = count(max_a + 1)
+    _next_tid = count(max_t + 1)
+
+    # dedupe: assign fresh IDs where missing or duplicated
+    seen_a = set()
+    for a in ASSIGNMENTS:
+        if not a["id"] or a["id"] in seen_a:
+            a["id"] = next(_next_aid)
+        seen_a.add(a["id"])
+
+    seen_t = set()
+    for t in TASKS:
+        if not t["id"] or t["id"] in seen_t:
+            t["id"] = next(_next_tid)
+        seen_t.add(t["id"])
+
+    for a in ASSIGNMENTS:
+        for t in a["tasks"]:
+            if not t["id"] or t["id"] in seen_t:
+                t["id"] = next(_next_tid)
+            seen_t.add(t["id"])
+
 
 def _ensure_ids_and_defaults():
     """Give IDs to any assignments/tasks that don't have them (e.g., from ICS import)."""
@@ -174,14 +228,16 @@ def create_task():
     if aid > 0:
         a = get_assignment(aid)
         if a:
-            base["importance"] = a["importance"]            # ⬅️ CHANGED: inherit
+            base["importance"] = a["importance"]
             a["tasks"].append(base)
-    else:
-        base["due_date"] = request.form["due_date"]         # ⬅️ NEW: standalone due
-        base["importance"] = int(request.form.get("importance", 5))
-        TASKS.append(base)
+            return redirect(url_for("index"))
+        # fall through if assignment not found -> standalone
 
+    base["due_date"] = request.form.get("due_date") or ""
+    base["importance"] = int(request.form.get("importance", 5))
+    TASKS.append(base)
     return redirect(url_for("index"))
+
 
 @app.post("/tasks/<int:task_id>/edit")
 def edit_task(task_id):
