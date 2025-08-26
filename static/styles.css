@@ -1,0 +1,117 @@
+/* --- Light theme palette --- */
+:root{
+  --bg:#f6f8fb;        /* page bg */
+  --card:#ffffff;      /* cards */
+  --subcard:#f7f9fc;   /* nested cards */
+  --text:#111827;      /* primary text */
+  --muted:#6b7280;     /* secondary text */
+  --accent:#2563eb;    /* brand blue */
+  --accent-2:#3b82f6;
+  --danger:#dc2626;
+  --ok:#16a34a;
+  --border:#e5e7eb;    /* light borders */
+  --input:#ffffff;     /* inputs */
+  --shadow:0 8px 24px rgba(17,24,39,.08);
+  --shadow:0 8px 24px rgba(17,24,39,.08);
+
+  /* +++ buttons +++ */
+  --btn-bg:#ffffff;
+  --btn-text:#111827;
+  --btn-border:#d1d5db;
+  --btn-hover:#f3f4f6;
+}
+
+body{
+  margin:0;
+  background:linear-gradient(180deg,#f6f8fb 0%, #eef3ff 100%);
+  color:var(--text);
+  font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b0d10; --card:#11151a; --subcard:#0e1216; --text:#e9eef3; --muted:#a4b0be;
+    --accent:#6ea8fe; --accent-2:#82cfff; --danger:#ff6b6b; --ok:#2ecc71; --border:#1f2630;
+    --input:#0f1318; --shadow:0 8px 24px rgba(0,0,0,.35);
+    --shadow:0 8px 24px rgba(0,0,0,.35);
+
+    /* +++ buttons +++ */
+    --btn-bg:#151a21;
+    --btn-text:#e9eef3;
+    --btn-border:#1f2630;
+    --btn-hover:#1a2027;
+  }
+  body{ background:linear-gradient(180deg,#0b0d10 0%,#0e1115 100%); }
+}
+
+
+.container{max-width:980px;margin:32px auto;padding:0 16px}
+
+h1,h2{margin:0 0 .75rem}
+h1{font-size:1.8rem}
+h2{font-size:1.3rem;color:var(--accent)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.5rem 0 1rem}
+
+hr{border:0;border-top:1px solid var(--border);margin:1.25rem 0}
+
+ul{list-style:none;margin:0;padding:0}
+ul>li{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:.9rem 1rem;margin:0 0 .75rem;box-shadow:var(--shadow)
+}
+ul>li ul>li{
+  background:var(--subcard);border-radius:12px;margin:.5rem .25rem;padding:.6rem .75rem
+}
+
+label{ color:#374151; } /* instead of --muted */
+input,select,textarea{
+  width:100%;padding:.55rem .65rem;border-radius:10px;border:1px solid var(--border);
+  background:var(--input);color:var(--text);outline-color:var(--accent)
+}
+textarea{min-height:84px;resize:vertical}
+
+form.grid{display:grid;gap:.75rem}
+form.grid.cols-3{grid-template-columns:repeat(3,minmax(200px,1fr))}
+form.grid.cols-2{grid-template-columns:repeat(2,minmax(220px,1fr))}
+form.grid .full{grid-column:1/-1}
+
+button{
+  appearance:none;
+  border:1px solid var(--btn-border);
+  background:var(--btn-bg);
+  color:var(--btn-text);
+  padding:.6rem .9rem;
+  border-radius:10px;
+  cursor:pointer;
+  transition:.15s ease;
+  box-shadow:0 1px 0 rgba(255,255,255,.6) inset, var(--shadow);
+}
+button:hover{
+  background:var(--btn-hover);
+  border-color:var(--accent);
+  transform:translateY(-1px);
+}
+
+/* variants keep strong contrast */
+button.primary{
+  background:linear-gradient(180deg,#1e90ff 0%,#1b6fe0 100%);
+  border-color:#2a7fff;
+  color:#fff;
+}
+button.danger{
+  background:linear-gradient(180deg,#ff6b6b 0%,#e05353 100%);
+  border-color:#ff7b7b;
+  color:#fff;
+}
+
+button.ghost{background:transparent}
+
+details{margin-top:.5rem}
+details summary{cursor:pointer;color:var(--muted)}
+details[open] summary{color:var(--accent)}
+
+.small{color:var(--muted);font-size:.88rem}
+
+/* Make inline action forms sit nicely */
+.actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.4rem}
+.actions form{display:inline}
