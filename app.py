@@ -5,6 +5,13 @@ from flask import jsonify
 
 app = Flask(__name__)
 
+@app.post("/assignments/<int:aid>/delete")
+def delete_assignment(aid):
+    # remove the assignment (and all its tasks with it)
+    global ASSIGNMENTS
+    ASSIGNMENTS = [a for a in ASSIGNMENTS if a.get("id") != aid]
+    return redirect(url_for("index"))
+
 @app.get("/api/state")
 def get_state():
     return jsonify({"assignments": ASSIGNMENTS, "tasks": TASKS})

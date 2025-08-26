@@ -33,6 +33,12 @@
       {% for a in assignments %}
         <li>
           <strong>{{ a.title }}</strong> (due {{ a.due_date }}, priority {{ a.importance }}) <!-- ⬅️ CHANGED -->
+          <!-- Delete Assignment -->
+          <form action="{{ url_for('delete_assignment', aid=a.id) }}" method="post"
+                style="display:inline" onsubmit="return confirm('Delete this assignment and its tasks?');">
+            <button type="submit">Delete Assignment</button>
+          </form>
+
           {% if a.tasks %}
             <ul>
               {% for t in a.tasks %}
